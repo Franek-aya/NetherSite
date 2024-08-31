@@ -144,7 +144,7 @@ a{
     transition: 200ms;
 }
 
-.header .nav button {
+.header .nav a.button {
     display: flex;
     align-items: center;
     padding: 0px 35px;
