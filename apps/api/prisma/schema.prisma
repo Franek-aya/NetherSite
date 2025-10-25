@@ -1,0 +1,109 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         Role      @default(USER)
+  twoFAEnabled Boolean   @default(false)
+  twoFASecret  String?
+  backupCodes  String[]
+  accounts     Account[]
+  payees       Payee[]
+  sessions     Session[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Account {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  iban      String        @unique
+  currency  String        @default("PLN")
+  balance   Decimal       @default(0)
+  cards     Card[]
+  txns      Transaction[]
+  createdAt DateTime      @default(now())
+}
+
+model Transaction {
+  id           String    @id @default(cuid())
+  accountId    String
+  account      Account   @relation(fields: [accountId], references: [id])
+  type         TxnType
+  amount       Decimal
+  title        String
+  counterparty String
+  counterIban  String?
+  category     String?
+  status       TxnStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
+}
+
+model Payee {
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id])
+  name    String
+  iban    String
+  trusted Boolean @default(false)
+}
+
+model Card {
+  id         String     @id @default(cuid())
+  accountId  String
+  account    Account    @relation(fields: [accountId], references: [id])
+  maskedPan  String
+  status     CardStatus @default(ACTIVE)
+  dailyLimit Decimal    @default(2000)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userAgent String
+  ip        String
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  meta      Json
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TxnType {
+  DEBIT
+  CREDIT
+}
+
+enum TxnStatus {
+  PENDING
+  SETTLED
+  FAILED
+}
+
+enum CardStatus {
+  ACTIVE
+  BLOCKED
+}
